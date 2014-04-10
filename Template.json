@@ -1,9 +1,14 @@
 {
-  "Name": "Aditi.WebFarm2",
-  "Description": "Creates a two (2) server IIS WebFarm with WebDeploy publishing enabled.",
-  "Version": "0.2.0",
-  "Guid": "3a1da14b-7191-4ae6-98be-00ff163fd1d4",
+  "Name": "AD",
+  "Description": "Creates an Active Directory deployment.",
+  "Version": "0.1.0",
   "Parameters": [
+    {
+      "Name": "VnetName",
+      "Type": "String",
+      "Description": "Name of Virtual Network",
+      "Default": "vnet"
+    },
     {
       "Name": "Region",
       "Type": "String",
@@ -59,178 +64,232 @@
       "Maximum": 127.0
     },
     {
+      "Name": "DSRMPassPhrase",
+      "Type": "String",
+      "TypeHint": "password",
+      "Description": "Safemode Password for domain",
+      "MaskValue": true,
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "Domain",
+      "Type": "String",
+      "TypeHint": "domain",
+      "Description": "NetBios domain name.",
+      "Minimum": 1.0,
+      "Maximum": 64.0
+    },
+    {
+      "Name": "FQDN",
+      "Type": "String",
+      "TypeHint": "domain",
+      "Description": "Fully qualified domain name",
+      "Minimum": 1.0,
+      "Maximum": 64.0
+    },
+    {
       "Name": "ServerNamePrefix",
       "Type": "String",
       "Description": "Name prefix for web servers.",
       "Default": "web",
       "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
       "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
-    },
-    {
-      "Name": "NumberOfWebServers",
-      "Type": "Number",
-      "TypeHint": "integer",
-      "Description": "Number of web servers.",
-      "Default": "2",
-      "AllowedRegex": "^\\d+$",
-      "AllowedDescription": "Must enter a positive integer between 2 and 100.",
-      "Minimum": 2.0,
-      "Maximum": 100.0
     }
   ],
   "Network": {
-    "DnsServers": [],
+    "DnsServers": [
+      {
+        "Name": "ad-dns1",
+        "IPAddress": "10.0.0.4"
+      },
+      {
+        "Name": "ad-dns2",
+        "IPAddress": "10.0.0.5"
+      }
+    ],
     "LocalSites": [],
-    "VirtualSites": []
+    "VirtualSites": [
+      {
+        "Name": "{{VnetName}}",
+        "AffinityGroup": "{{AffinityGroup}}",
+        "AddressSpace": [
+          "10.0.0.0/8"
+        ],
+        "Subnets": [
+          {
+            "Name": "ad-subnet",
+            "AddressPrefix": "10.0.0.0/24"
+          }
+        ],
+        "DnsServers": [
+          "ad-dns1",
+          "ad-dns2"
+        ],
+        "VPNClientAddressSpaces": []
+      }
+    ]
   },
   "AffinityGroup": {
     "Name": "{{AffinityGroup}}",
-    "Region": "{{Region}}",
+    "Region": "East US",
     "Label": "DSC created affinity group"
   },
   "StorageAccounts": [
     {
       "Name": "{{DiskStore}}",
       "AffinityGroup": "{{AffinityGroup}}",
-      "Region": "{{Region}}",
-      "Description": "A georedundant disk store",
-      "DisableGeoReplication": false
+      "Region": "East US",
+      "Description": "A non-georedundant disk store",
+      "DisableGeoReplication": true
     }
   ],
   "CloudServices": [
     {
       "Name": "{{CloudService}}",
       "AffinityGroup": "{{AffinityGroup}}",
-      "Region": "{{Region}}",
-      "Description": "My WebFarm cloud service",
+      "Region": "East US",
+      "Description": "My AD Service",
       "Deployment": {
-        "Name": "{{CloudDeploymentId}}",
+        "Name": "03d081ab-b806-45ff-ae8d-3fbce755a6d5",
+        "VirtualNetwork": "dsc-vnet",
         "VirtualMachines": [
           {
-            "Name": "{{ServerNamePrefix}}1",
-            "RoleSize": "{{VMSize}}",
-            "AvailabilitySet": "webfarm-avset",
+            "Name": "dc1",
+            "RoleSize": "Small",
+            "Subnets": [
+              "ad-subnet"
+            ],
+            "AvailabilitySet": "ad-avs",
             "OsVirtualDisk": {
               "OsType": "Windows",
               "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
             },
+            "DataVirtualDisks": [
+              {
+                "DiskId": "disk0",
+                "Lun": 0,
+                "LogicalSizeInGB": 40
+              }
+            ],
             "WindowsConfigSet": {
-              "LocalAdminCredentialId": "vmadmin",
+              "LocalAdminCredentialId": "DomainAdmin",
               "EnableAutomaticUpdates": false,
               "ChangePasswordAtLogon": false,
               "DisableRdp": false
             },
             "ConfigSets": [
-              "WebFarmServer",
-              "WebDeployPublishServer"
-            ]
-          }
-{% for i in (2..NumberOfWebServers) -%}
-          ,{
-            "Name": "{{ServerNamePrefix}}{{i}}",
-            "RoleSize": "{{VMSize}}",
-            "AvailabilitySet": "webfarm-avset",
+              "RootDomainController"
+            ],
+            "DeploymentGroup": "ADGroup"
+          },
+          {
+            "Name": "dc2",
+            "RoleSize": "Small",
+            "Subnets": [
+              "ad-subnet"
+            ],
+            "AvailabilitySet": "ad-avs",
             "OsVirtualDisk": {
               "OsType": "Windows",
               "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
             },
+            "DataVirtualDisks": [
+              {
+                "DiskId": "disk0",
+                "Lun": 0,
+                "LogicalSizeInGB": 40
+              }
+            ],
             "WindowsConfigSet": {
-              "LocalAdminCredentialId": "vmadmin",
+              "LocalAdminCredentialId": "DomainAdmin",
               "EnableAutomaticUpdates": false,
               "ChangePasswordAtLogon": false,
               "DisableRdp": false
             },
             "ConfigSets": [
-              "WebFarmServer"
-            ]
+              "DomainController"
+            ],
+            "DeploymentGroup": "ADGroup"
           }
-{% endfor -%}
+        ],
+        "DnsServers": [
+          {
+            "Name": "DCLoopback",
+            "IPAddress": "127.0.0.1"
+          }
         ],
         "DiskStorageAccount": "{{DiskStore}}"
       }
     }
   ],
-  "DeploymentGroups": [],
+  "DeploymentGroups": [
+    {
+      "Name": "ADGroup",
+      "Description": "Must fully deploy AD before deploying dependant VMs."
+    }
+  ],
   "Credentials": [
     {
-      "Name": "vmadmin",
+      "Name": "DomainAdmin",
+      "UserName": "{{Domain}}\\{{AdminName}}",
+      "Password": "{{AdminPassword}}"
+    },
+    {
+      "Name": "DomainAdmin:local",
       "UserName": "{{AdminName}}",
+      "Password": "{{AdminPassword}}"
+    },
+    {
+      "Name": "DomainJoinCred",
+      "UserName": "{{Domain}}\\{{AdminName}}",
       "Password": "{{AdminPassword}}"
     }
   ],
   "ConfigSets": [
     {
-      "Name": "WebFarmServer",
-      "Description": "Web farm server",
-      "Endpoints": [
-        {
-          "Name": "HTTP",
-          "LocalPort": 80,
-          "Protocol": "tcp",
-          "Port": 80,
-          "EnableDirectServerReturn": false,
-          "Rules": [],
-          "LoadBalancerProbe": {
-            "Name": "http",
-            "Protocol": "Http",
-            "Path": "/",
-            "IntervalInSeconds": 15,
-            "TimeoutInSeconds": 31
-          }
-        },
-        {
-          "Name": "HTTPS",
-          "LocalPort": 443,
-          "Protocol": "tcp",
-          "Port": 443,
-          "EnableDirectServerReturn": false,
-          "Rules": [],
-          "LoadBalancerProbe": {
-            "Name": "https",
-            "Protocol": "Tcp",
-            "IntervalInSeconds": 15,
-            "TimeoutInSeconds": 31
-          }
-        }
-      ],
+      "Name": "RootDomainController",
+      "Description": "Active Directory root DC",
+      "Endpoints": [],
       "ConfigurationIds": [
-        "InstallWebFarm"
+        "SetupADNode",
+        "SetupADForest"
       ]
     },
     {
-      "Name": "WebDeployPublishServer",
-      "Description": "Web deploy publish server",
-      "Endpoints": [
-        {
-          "Name": "WebDeploy",
-          "LocalPort": 8172,
-          "Protocol": "tcp",
-          "Port": 8172,
-          "EnableDirectServerReturn": false,
-          "Rules": []
-        }
-      ],
+      "Name": "DomainController",
+      "Description": "Active Directory child DC",
+      "Endpoints": [],
       "ConfigurationIds": [
-        "SyncWebFarmContent"
+        "SetupADNode",
+        "SetupADDomainController"
+      ]
+    },
+    {
+      "Name": "DomainNode",
+      "Description": "Domain node",
+      "Endpoints": [],
+      "ConfigurationIds": [
+        "DnsDependantNode"
       ]
     }
   ],
   "Configurations": [
     {
-      "Name": "InstallWebFarm",
+      "Name": "SetupADNode",
+      "Description": "Install AD Domain Services, Group Policy Management Console, and DNS.",
       "Resources": [
         {
-          "Type": "Package",
+          "Credential": null,
+          "GetScript": "@{ Disks = Get-Disk; Partitions = Get-Disk | Get-Partition; }",
+          "SetScript": "\r\nFunction Format-RawDisks\r\n{\r\n    [cmdletbinding()]\r\n    param([char]$nextDriveLetter)\r\n\r\n\tforeach ($disk in Get-Disk | Where PartitionStyle -eq 'RAW')\r\n\t{\r\n\t\tWrite-Verbose \"Formatting disk [$nextDriveLetter]\"\r\n\t\t$disk | Initialize-Disk -PartitionStyle MBR -PassThru |\r\n\t\t\t\tNew-Partition -DriveLetter $nextDriveLetter -UseMaximumSize |\r\n\t\t\t\tFormat-Volume -FileSystem NTFS -Confirm:$false\r\n\r\n\t\t$nextDriveLetter = [char]([int]$nextDriveLetter + 1)\r\n\t}\r\n}\r\nFormat-RawDisks $FirstDriveLetter[0] -ErrorAction Stop",
+          "TestScript": null,
+          "Type": "Script",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "InstallWebPI",
+          "Name": "FormatRawDisks",
           "Args": {
-            "Credential": "vmadmin",
-            "Name": "Microsoft Web Platform Installer 4.6",
-            "ProductId": "16C7D2AD-20CA-491E-80BC-8607A9AACED9",
-            "Path": "http://download.microsoft.com/download/7/0/4/704CEB4C-9F42-4962-A2B0-5C84B0682C7A/WebPlatformInstaller_amd64_en-US.msi",
-            "LogPath": "C:\\ProgramData\\Aditi\\Brewmaster\\temp\\WebPlatformInstaller_amd64_en-US.log",
-            "Ensure": "Present"
+            "FirstDriveLetter": "F"
           },
           "Nodes": [],
           "Requires": [],
@@ -240,12 +299,12 @@
           "Type": "WindowsFeature",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "InstallASPNET45",
+          "Name": "ADDomainServices",
           "Args": {
-            "Name": "NET-Framework-45-ASPNET",
+            "Name": "AD-Domain-Services",
+            "Ensure": "Present",
             "IncludeAllSubFeature": "true",
-            "LogPath": "C:\\ProgramData\\Aditi\\Brewmaster\\temp\\Install-ASPNET45.log",
-            "Ensure": "Present"
+            "LogPath": "%BrewmasterDir%\\Logs\\Install-ADDomainServices.log"
           },
           "Nodes": [],
           "Requires": [],
@@ -255,87 +314,58 @@
           "Type": "WindowsFeature",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "InstallIIS",
+          "Name": "GroupPolicyManagementConsole",
           "Args": {
-            "Name": "Web-Server",
+            "Name": "GPMC",
+            "Ensure": "Present",
             "IncludeAllSubFeature": "true",
-            "LogPath": "C:\\ProgramData\\Aditi\\Brewmaster\\temp\\Install-IIS.log",
-            "Ensure": "Present"
+            "LogPath": "%BrewmasterDir%\\Logs\\Install-GPMC.log"
           },
           "Nodes": [],
           "Requires": [],
           "Description": null
-        },
+        }
+      ],
+      "Args": {}
+    },
+    {
+      "Name": "SetupADForest",
+      "Description": "Configure this server as the first Active Directory domain controller in a new forest. See http://technet.microsoft.com/en-us/library/jj574166.aspx",
+      "Resources": [
         {
-          "Type": "Registry",
+          "Credential": null,
+          "GetScript": "return @{Domain = Get-WmiObject Win32_NTDomain}",
+          "SetScript": "\r\nWrite-Verbose \"Creating forest [$DomainNetbiosName ($DomainName)]\"\r\nImport-Module ADDSDeployment -Verbose:$false\r\nInstall-ADDSForest -DomainName $DomainName `\r\n                   -DomainNetbiosName $DomainNetbiosName `\r\n                   -ForestMode 'Win2012' `\r\n                   -DomainMode 'Win2012' `\r\n                   -SafeModeAdministratorPassword (ConvertTo-SecureString $DSRMPassPhrase -AsPlainText -Force) `\r\n                   -InstallDns `\r\n                   -DatabasePath $DatabasePath `\r\n                   -LogPath $LogPath `\r\n                   -SysvolPath $SysvolPath `\r\n                   -Force `\r\n                   -NoRebootOnCompletion `\r\n                   -ErrorAction Stop `\r\n                   -WarningAction SilentlyContinue\r\nWrite-Verbose 'Rebooting'\r\n$global:DSCMachineStatus = 1",
+          "TestScript": "\r\n$d = Get-WmiObject Win32_NTDomain\r\nif ($d.Status -eq 'OK' -AND \r\n    $d.DnsForestName -eq $DomainName -AND \r\n    $d.DomainName -eq $DomainNetbiosName -AND \r\n    $d.DomainControllerName -eq \"\\\\$env:COMPUTERNAME\")\r\n{\r\n\tWrite-Verbose \"Domain [$DomainNetbiosName ($DomainName)] already configured.\"\r\n\treturn $true\r\n}\r\nreturn $false",
+          "Type": "Script",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "EnableRemoteManagement",
+          "Name": "SetupForest",
           "Args": {
-            "Key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\WebManagement\\Server",
-            "ValueName": "EnableRemoteManagement",
-            "ValueData": "1",
-            "ValueType": "Dword",
-            "Force": "true",
-            "Ensure": "Present"
+            "DomainNetbiosName": "{{Domain}}",
+            "DomainName": "{{FQDN}}",
+            "DSRMPassPhrase": "{{DSRMPassPhrase}}",
+            "DatabasePath": "F:\\NTDS",
+            "LogPath": "F:\\NTDS",
+            "SysvolPath": "F:\\SYSVOL"
           },
           "Nodes": [],
-          "Requires": [
-            "[WindowsFeature]InstallIIS",
-            "[WindowsFeature]InstallASPNET45"
-          ],
+          "Requires": [],
           "Description": null
         },
         {
           "Type": "Service",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "StartWebManagementService",
+          "Name": "StartADWebServices",
           "Args": {
-            "Name": "wmsvc",
+            "Name": "ADWS",
             "StartupType": "Automatic",
             "State": "Running"
           },
           "Nodes": [],
           "Requires": [
-            "[Registry]EnableRemoteManagement"
-          ],
-          "Description": null
-        },
-        {
-          "Credential": "vmadmin",
-          "GetScript": "return @{ Installed = Test-Path -LiteralPath \"$env:ProgramFiles\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe\" -PathType Leaf }\r\n",
-          "SetScript": "$webpicmdexe = \"$env:ProgramFiles\\Microsoft\\Web Platform Installer\\WebPICmd.exe\"\r\n$webpicmdargs = @(\"/Install\", \"/Products:WDeployPS\", \"/AcceptEula\", \"/SuppressReboot\", \"/Log:C:\\ProgramData\\Aditi\\Brewmaster\\temp\\WebDeploy-Install.log\")\r\nWrite-Verbose \"Installing WebDeploy V3 ($webpicmdexe $webpicmdargs)\" -Verbose\r\nStart-Process -FilePath $webpicmdexe -ArgumentList $webpicmdargs -Wait\r\nif (!(Test-Path -LiteralPath \"$env:ProgramFiles\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe\" -PathType Leaf))\r\n{\r\n    Throw \"$env:ProgramFiles\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe was not installed.\"\r\n}\r\n",
-          "TestScript": "if (Test-Path -LiteralPath \"$env:ProgramFiles\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe\" -PathType Leaf)\r\n{\r\n    Write-Verbose \"$env:ProgramFiles\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe already exists.\" -Verbose\r\n    return $true\r\n}\r\nreturn $false\r\n",
-          "Type": "Script",
-          "ImportModule": null,
-          "ImportTypeName": null,
-          "Name": "InstallWebDeploy",
-          "Args": {},
-          "Nodes": [],
-          "Requires": [
-            "[Service]StartWebManagementService",
-            "[Package]InstallWebPI"
-          ],
-          "Description": null
-        },
-        {
-          "Type": "xFirewall",
-          "ImportModule": "xNetworking",
-          "ImportTypeName": "MSFT_xFirewall",
-          "Name": "OpenWebDeployPort",
-          "Args": {
-            "Name": "WebDeploy",
-            "Description": "WebDeploy (TCP in)",
-            "LocalPort": "8172",
-            "Protocol": "TCP",
-            "Access": "Allow",
-            "State": "Enabled",
-            "Direction": "Inbound"
-          },
-          "Nodes": [],
-          "Requires": [
-            "[Script]InstallWebDeploy"
+            "[Script]SetupForest"
           ],
           "Description": null
         }
@@ -343,44 +373,69 @@
       "Args": {}
     },
     {
-      "Name": "SyncWebFarmContent",
+      "Name": "SetupADDomainController",
+      "Description": "Configure this server as an additional Active Directory domain controller. See http://technet.microsoft.com/en-us/library/jj574134.aspx.",
       "Resources": [
         {
-          "Type": "File",
+          "Credential": null,
+          "GetScript": "return @{Domain = Get-WmiObject Win32_NTDomain}",
+          "SetScript": "\r\nWrite-Verbose \"Creating domain [$DomainNetbiosName ($DomainName)]\"\r\nImport-Module ADDSDeployment -Verbose:$false\r\n\r\n# Temporarily make the RootDC our DNS Server...\r\nSet-DnsClientServerAddress -InterfaceAlias 'Ethernet*' -ServerAddresses $DCRootIPAddress -Validate -ErrorAction Stop\r\n\r\nInstall-ADDSDomainController -DomainName $DomainName `\r\n                             -Credential (New-Object PsCredential($AdminUser, (ConvertTo-SecureString $AdminPass -AsPlainText -Force))) `\r\n                             -SafeModeAdministratorPassword (ConvertTo-SecureString $DSRMPassPhrase -AsPlainText -Force) `\r\n                             -InstallDns `\r\n                             -NoGlobalCatalog `\r\n                             -DatabasePath $DatabasePath `\r\n                             -LogPath $LogPath `\r\n                             -SysvolPath $SysvolPath `\r\n                             -Force `\r\n                             -NoRebootOnCompletion `\r\n                             -ErrorAction Stop `\r\n                             -WarningAction SilentlyContinue\r\n\r\n# Point the DNS server at this server...\r\nSet-DnsClientServerAddress -InterfaceAlias 'Ethernet*' -ServerAddresses '127.0.0.1' -Validate:$false\r\n\r\nWrite-Verbose 'Rebooting'\r\n$global:DSCMachineStatus = 1",
+          "TestScript": "\r\n$d = Get-WmiObject Win32_NTDomain\r\nif ($d.Status -eq 'OK' -AND \r\n    $d.DnsForestName -eq $DomainName -AND \r\n    $d.DomainName -eq $DomainNetbiosName -AND \r\n    $d.DomainControllerName -eq \"\\\\$env:COMPUTERNAME\")\r\n{\r\n\tWrite-Verbose \"Domain [$DomainNetbiosName ($DomainName)] already configured.\"\r\n\treturn $true\r\n}\r\nreturn $false",
+          "Type": "Script",
           "ImportModule": null,
           "ImportTypeName": null,
-          "Name": "CreateSyncContentScript",
+          "Name": "SetupDC",
           "Args": {
-            "DestinationPath": "C:\\ProgramData\\Aditi\\Brewmaster\\SyncContentNow.ps1",
-            "Type": "File",
-            "Ensure": "Present",
-            "Force": "True",
-            "Contents": "& 'C:\\ProgramData\\Aditi\\Brewmaster\\Template\\Files\\Powershell\\WebDeploySyncContent.ps1' -WebServers \"{{ServerNamePrefix}}1{% for i in (2..NumberOfWebServers) %} {{ServerNamePrefix}}{{i}}{% endfor %}\"",
-            "Checksum": "SHA-1"
+            "DomainNetbiosName": "{{Domain}}",
+            "DomainName": "{{FQDN}}",
+            "DSRMPassPhrase": "{{DSRMPassPhrase}}",
+            "AdminUser": "{{Domain}}\\{{AdminName}}",
+            "AdminPass": "{{AdminPassword}}",
+            "DatabasePath": "F:\\NTDS",
+            "LogPath": "F:\\NTDS",
+            "SysvolPath": "F:\\SYSVOL",
+            "DCRootIPAddress": "10.0.0.4"
           },
           "Nodes": [],
           "Requires": [],
-          "Description": null
+          "Description": ""
         },
         {
-          "Type": "ScheduledJob",
-          "ImportModule": "AditiResources",
-          "ImportTypeName": "Aditi_ScheduledJob",
-          "Name": "CreateSyncContentTask",
+          "Type": "Service",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "StartADWebServices",
           "Args": {
-            "Name": "Aditi_Brewmaster_WebFarm_ContentSync",
-            "FilePath": "C:\\ProgramData\\Aditi\\Brewmaster\\SyncContentNow.ps1",
-            "Ensure": "Present",
-            "At": "%%\"$(Get-Date)\"",
-            "Once": "true",
-            "Minutes": "5",
-            "Credential": "vmadmin"
+            "Name": "ADWS",
+            "StartupType": "Automatic",
+            "State": "Running"
           },
           "Nodes": [],
           "Requires": [
-            "[File]CreateSyncContentScript"
+            "[Script]SetupDC"
           ],
           "Description": null
+        }
+      ],
+      "Args": {}
+    },
+    {
+      "Name": "DnsDependantNode",
+      "Description": "Reboots any DNS dependant nodes with Network issues. Should include any non-DNS nodes created prior to the DNS Server be installed.",
+      "Resources": [
+        {
+          "Credential": null,
+          "GetScript": "Test-NetConnection -InformationLevel Detailed",
+          "SetScript": "\r\nif (!(Test-NetConnection -InformationLevel Quiet))\r\n{\r\n    if ((Get-ItemProperty -Path HKLM:\\SOFTWARE\\Aditi\\Brewmaster\\DnsDependantNode -ea Ignore).Rebooted)\r\n    {\r\n        Write-Warning 'Already rebooted once. Skipping this time.'\r\n        return\r\n    }\r\n\r\n    Write-Verbose 'Rebooting in order to resolve network issue.'\r\n    New-Item -Path HKLM:\\SOFTWARE\\Aditi\\Brewmaster -Force | Out-Null\r\n    Set-ItemProperty -Path HKLM:\\SOFTWARE\\Aditi\\Brewmaster\\DnsDependantNode -Name Rebooted -Value 1 -Type DWord\r\n    $global:DSCMachineStatus = 1\r\n}",
+          "TestScript": "Test-NetConnection -InformationLevel Quiet",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "CheckNetwork",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [],
+          "Description": "Reboot if network (DNS) not working. Assumes that rebooting the VM will fix the DNS."
         }
       ],
       "Args": {}
