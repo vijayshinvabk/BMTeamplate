@@ -173,7 +173,7 @@
             "Credential": "vmadmin",
             "Name": "Microsoft Web Platform Installer 4.6",
             "ProductId": "16C7D2AD-20CA-491E-80BC-8607A9AACED9",
-            "Path": "https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.1.1.zip",
+            "Path": "http://download.tuxfamily.org/notepadplus/6.6.1/npp.6.6.1.Installer.exe",
             "LogPath": "%BrewmasterDir%\\Logs\\WebPlatformInstaller_amd64_en-US.log",
             "Ensure": "Present"
           },
