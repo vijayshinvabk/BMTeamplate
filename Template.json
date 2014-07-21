@@ -11,7 +11,7 @@
     {
       "Name": "AffinityGroup",
       "Type": "String",
-      "TypeHint": "AzureAffinityGroupName",
+      "TypeHint": "AzurexGroupName",
       "Description": "Name of Azure affinity group."
     },
     {
@@ -118,14 +118,12 @@
   "StorageAccounts": [
     {
       "Name": "{{DiskStore}}",
-      "Region": "{{Region}}",
       "DisableGeoReplication": false
     }
   ],
   "CloudServices": [
     {
       "Name": "{{CloudService}}",
-      "Region": "{{Region}}",
       "Description": "Brewmaster Elastic Search",
       "Deployment": {
         "VirtualMachines": [
