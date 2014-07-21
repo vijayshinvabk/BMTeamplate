@@ -11,7 +11,7 @@
     {
       "Name": "AffinityGroup",
       "Type": "String",
-      "TypeHint": "AzurexGroupName",
+      "TypeHint": "AzureAffinityGroupName",
       "Description": "Name of Azure affinity group."
     },
     {
