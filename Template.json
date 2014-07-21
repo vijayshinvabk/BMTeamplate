@@ -93,6 +93,17 @@
       "AllowedDescription": "Must enter a positive integer between 2 and 100.",
       "Minimum": 2.0,
       "Maximum": 100.0
+    },
+    {
+      "Name": "DataDiskSize",
+      "Type": "Number",
+      "TypeHint": "integer",
+      "Description": "Size of Data disk(GB).",
+      "Default": "100",
+      "AllowedRegex": "^\\d+$",
+      "AllowedDescription": "Must enter a positive integer between 2 and 1024.",
+      "Minimum": 2.0,
+      "Maximum": 1024.0
     }
   ],
   "Network": {
@@ -107,21 +118,19 @@
   "StorageAccounts": [
     {
       "Name": "{{DiskStore}}",
-      "AffinityGroup": "{{AffinityGroup}}",
       "Region": "{{Region}}",
-      "DisableGeoReplication": "false"
+      "DisableGeoReplication": false
     }
   ],
   "CloudServices": [
     {
       "Name": "{{CloudService}}",
-      "AffinityGroup": "{{AffinityGroup}}",
       "Region": "{{Region}}",
       "Description": "Brewmaster Elastic Search",
       "Deployment": {
         "VirtualMachines": [
           {
-            "Name": "{{ServerNamePrefix}}",
+            "Name": "{{ServerNamePrefix}}1",
             "RoleSize": "{{VmSize}}",
             "AvailabilitySet": "es-avset",
             "OsVirtualDisk": {
@@ -131,19 +140,48 @@
             "DataVirtualDisks": [
               {
                 "DiskId": "disk0",
-                "LogicalSizeInGB": "100"
+                "LogicalSizeInGB": "{{DataDiskSize}}"
               }
             ],
             "WindowsConfigSet": {
               "LocalAdminCredentialId": "vmadmin",
-              "DisableRdp": "false"
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
             },
             "ConfigSets": [
               "ElasticSearchServer"
             ]
           }
+{% for i in (2..NumberOfElasticSearchServers) -%}
+		  ,{
+            "Name": "{{ServerNamePrefix}}{{i}}",
+            "RoleSize": "{{VmSize}}",
+            "AvailabilitySet": "es-avset",
+            "OsVirtualDisk": {
+              "OsType": "Windows",
+              "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
+            },
+            "DataVirtualDisks": [
+              {
+                "DiskId": "disk0",
+                "LogicalSizeInGB": 100
+              }
+            ],
+            "WindowsConfigSet": {
+              "LocalAdminCredentialId": "vmadmin",
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
+            },
+            "ConfigSets": [
+              "ElasticSearchServer"
+            ]
+          }
+{% endfor -%}
         ],
-        "DiskStorageAccount": "{{DiskStore}}"
+        "DiskStorageAccount": "{{DiskStore}}",
+        "RemoveUnreferencedVms": false
       }
     }
   ],
@@ -162,29 +200,31 @@
       "Endpoints": [
         {
           "Name": "HTTP",
-          "LocalPort": "9200",
+          "LocalPort": 9200,
           "Protocol": "tcp",
-          "Port": "9200",
+          "Port": 9200,
+          "EnableDirectServerReturn": false,
           "Rules": [],
           "LoadBalancerProbe": {
             "Name": "http",
             "Protocol": "Http",
             "Path": "/",
-            "IntervalInSeconds": "15",
-            "TimeoutInSeconds": "31"
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
           }
         },
         {
           "Name": "HTTPS",
-          "LocalPort": "443",
+          "LocalPort": 443,
           "Protocol": "tcp",
-          "Port": "443",
+          "Port": 443,
+          "EnableDirectServerReturn": false,
           "Rules": [],
           "LoadBalancerProbe": {
             "Name": "https",
             "Protocol": "Tcp",
-            "IntervalInSeconds": "15",
-            "TimeoutInSeconds": "31"
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
           }
         }
       ],
