@@ -118,16 +118,12 @@
   "StorageAccounts": [
     {
       "Name": "{{DiskStore}}",
-      "AffinityGroup": "{{AffinityGroup}}",
-      "Region": "{{Region}}",
       "DisableGeoReplication": false
     }
   ],
   "CloudServices": [
     {
       "Name": "{{CloudService}}",
-      "AffinityGroup": "{{AffinityGroup}}",
-      "Region": "{{Region}}",
       "Description": "Brewmaster Elastic Search",
       "Deployment": {
         "VirtualMachines": [
