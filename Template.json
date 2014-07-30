@@ -1,6 +1,7 @@
 {
   "Name": "Brewmaster.VNetTest",
   "Description": "Vnet Test",
+  "Version": "0.1.0",
   "Parameters": [
     {
       "Name": "VnetName",
@@ -25,6 +26,12 @@
     "Name": "{{AffinityGroup}}",
     "Region": "{{Region}}"
   },
+  "StorageAccounts": [],
+  "CloudServices": [],
+  "DeploymentGroups": [],
+  "Credentials": [],
+  "ConfigSets": [],
+  "Configurations": [],
   "Network": {
     "DnsServers": [
       {
