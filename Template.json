@@ -1,14 +1,7 @@
 {
-  "Name": "Brewmaster.VNetTest",
-  "Description": "Vnet Test",
-  "Version": "0.1.0",
+  "Name": "Brewmaster.ElasticSearch",
+  "Description": "Elastic Search Cluster",
   "Parameters": [
-    {
-      "Name": "VnetName",
-      "Type": "String",
-      "Description": "Name of Virtual Network",
-      "Default": "vnet"
-    },
     {
       "Name": "Region",
       "Type": "String",
@@ -21,48 +14,531 @@
       "TypeHint": "AzureAffinityGroupName",
       "Description": "Name of Azure affinity group."
     },
+    {
+      "Name": "CloudService",
+      "Type": "String",
+      "TypeHint": "AzureCloudServiceName",
+      "Description": "Name of the Azure Cloud Service."
+    },
+    {
+      "Name": "DiskStore",
+      "Type": "String",
+      "TypeHint": "AzureStorageName",
+      "Description": "Name of Azure disk storage account."
+    },
+    {
+      "Name": "VMSize",
+      "Type": "String",
+      "TypeHint": "AzureRoleSize",
+      "Description": "Size of the server VMs.",
+      "Default": "Small"
+    },
+    {
+      "Name": "AdminName",
+      "Type": "String",
+      "TypeHint": "username",
+      "Description": "Name of local administrator account.",
+      "Minimum": 1.0,
+      "Maximum": 64.0
+    },
+    {
+      "Name": "AdminPassword",
+      "Type": "String",
+      "TypeHint": "password",
+      "Description": "Password of local administrator account.",
+      "MaskValue": true,
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "ServerNamePrefix",
+      "Type": "String",
+      "Description": "Name prefix for ElasticSearch servers.",
+      "Default": "esn",
+      "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
+      "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
+    },
+    {
+      "Name": "AzureCertificateUrl",
+      "Type": "String",
+      "TypeHint": "string",
+      "Description": "URL to Azure certificate.",
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "AzureCertificatePassword",
+      "Type": "String",
+      "TypeHint": "password",
+      "Description": "Password for the certificate file.",
+      "MaskValue": true,
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "AzureSubscriptionId",
+      "Type": "String",
+      "TypeHint": "Guid",
+      "Description": "Subscription Id.",
+      "Minimum": 8.0,
+      "Maximum": 127.0
+    },
+    {
+      "Name": "NumberOfElasticSearchServers",
+      "Type": "Number",
+      "TypeHint": "integer",
+      "Description": "Number of ElasticSearch servers.",
+      "Default": "2",
+      "AllowedRegex": "^\\d+$",
+      "AllowedDescription": "Must enter a positive integer between 2 and 100.",
+      "Minimum": 2.0,
+      "Maximum": 100.0
+    },
+    {
+      "Name": "DataDiskSize",
+      "Type": "Number",
+      "TypeHint": "integer",
+      "Description": "Size of Data disk(GB).",
+      "Default": "100",
+      "AllowedRegex": "^\\d+$",
+      "AllowedDescription": "Must enter a positive integer between 2 and 1024.",
+      "Minimum": 2.0,
+      "Maximum": 1024.0
+    }
   ],
+  "Network": {
+    "DnsServers": [],
+    "LocalSites": [],
+    "VirtualSites": []
+  },
   "AffinityGroup": {
     "Name": "{{AffinityGroup}}",
     "Region": "{{Region}}"
   },
-  "StorageAccounts": [],
-  "CloudServices": [],
-  "DeploymentGroups": [],
-  "Credentials": [],
-  "ConfigSets": [],
-  "Configurations": [],
-  "Network": {
-    "DnsServers": [
-      {
-        "Name": "test-dns1",
-        "IPAddress": "10.0.0.4"
-      },
-      {
-        "Name": "test-dns2",
-        "IPAddress": "10.0.0.5"
-      }
-    ],
-    "LocalSites": [],
-    "VirtualSites": [
-      {
-        "Name": "{{VnetName}}",
-        "AffinityGroup": "{{AffinityGroup}}",
-        "AddressSpace": [
-          "10.0.0.0/8"
-        ],
-        "Subnets": [
+  "StorageAccounts": [
+    {
+      "Name": "{{DiskStore}}",
+      "AffinityGroup": "{{AffinityGroup}}",
+      "Region": "{{Region}}",
+      "DisableGeoReplication": false
+    }
+  ],
+  "CloudServices": [
+    {
+      "Name": "{{CloudService}}",
+      "AffinityGroup": "{{AffinityGroup}}",
+      "Region": "{{Region}}",
+      "Description": "Brewmaster Elastic Search",
+      "Deployment": {
+        "VirtualMachines": [
           {
-            "Name": "test-subnet",
-            "AddressPrefix": "10.0.0.0/24"
+            "Name": "{{ServerNamePrefix}}1",
+            "RoleSize": "{{VmSize}}",
+            "AvailabilitySet": "es-avset",
+            "OsVirtualDisk": {
+              "OsType": "Windows",
+              "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
+            },
+            "DataVirtualDisks": [
+              {
+                "DiskId": "disk0",
+                "LogicalSizeInGB": 100
+              }
+            ],
+            "WindowsConfigSet": {
+              "LocalAdminCredentialId": "vmadmin",
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
+            },
+            "ConfigSets": [
+              "ElasticSearchServer"
+            ]
           }
+{% for i in (2..NumberOfElasticSearchServers) -%}
+		,{
+            "Name": "{{ServerNamePrefix}}1",
+            "RoleSize": "{{VmSize}}",
+            "AvailabilitySet": "es-avset",
+            "OsVirtualDisk": {
+              "OsType": "Windows",
+              "OsImageName": "a699494373c04fc0bc8f2bb1389d6106__Windows-Server-2012-R2-*"
+            },
+            "DataVirtualDisks": [
+              {
+                "DiskId": "disk0",
+                "LogicalSizeInGB": 100
+              }
+            ],
+            "WindowsConfigSet": {
+              "LocalAdminCredentialId": "vmadmin",
+              "EnableAutomaticUpdates": false,
+              "ChangePasswordAtLogon": false,
+              "DisableRdp": false
+            },
+            "ConfigSets": [
+              "ElasticSearchServer"
+            ]
+          }
+{% endfor -%}		  
         ],
-        "DnsServers": [
-          "test-dns1",
-          "test-dns2"
-        ],
-        "VPNClientAddressSpaces": []
+        "DiskStorageAccount": "{{DiskStore}}",
+        "RemoveUnreferencedVms": false
       }
-    ]
-  }
+    }
+  ],
+  "DeploymentGroups": [],
+  "Credentials": [
+    {
+      "Name": "vmadmin",
+      "UserName": "{{AdminName}}",
+      "Password": "{{AdminPassword}}"
+    }
+  ],
+  "ConfigSets": [
+    {
+      "Name": "ElasticSearchServer",
+      "Description": "Elastic Search Server",
+      "Endpoints": [
+        {
+          "Name": "HTTP",
+          "LocalPort": 9200,
+          "Protocol": "tcp",
+          "Port": 9200,
+          "EnableDirectServerReturn": false,
+          "Rules": [],
+          "LoadBalancerProbe": {
+            "Name": "http",
+            "Protocol": "Http",
+            "Path": "/",
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
+          }
+        },
+        {
+          "Name": "HTTPS",
+          "LocalPort": 443,
+          "Protocol": "tcp",
+          "Port": 443,
+          "EnableDirectServerReturn": false,
+          "Rules": [],
+          "LoadBalancerProbe": {
+            "Name": "https",
+            "Protocol": "Tcp",
+            "IntervalInSeconds": 15,
+            "TimeoutInSeconds": 31
+          }
+        }
+      ],
+      "ConfigurationIds": [
+        "InstallElasticSearch"
+      ]
+    }
+  ],
+  "Configurations": [
+    {
+      "Name": "InstallElasticSearch",
+      "Resources": [
+        {
+          "Type": "xFormatDisks",
+          "ImportModule": "xAzureDataDisks",
+          "ImportTypeName": "ADITI_xFormatDisks",
+          "Name": "FormatRawDisks",
+          "Args": {
+            "FirstDriveLetter": "F"
+          },
+          "Nodes": [],
+          "Requires": [],
+          "Description": null
+        },
+        {
+          "Type": "File",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "SetupFolder",
+          "Args": {
+            "Type": "Directory",
+            "DestinationPath": "C:\\Setup",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Downloaded = Test-Path -LiteralPath \"C:\\setup\\jdk1.8.0_11.zip\" -PathType Leaf }",
+          "SetScript": "Write-Verbose \"Downloading JRE. This can take around 20 mins.\" -Verbose\r\nInvoke-WebRequest 'http://apselasticsearchdev.blob.core.windows.net/brewmasterinstallers/jdk1.8.0_11.zip' -OutFile \"C:\\setup\\jdk1.8.0_11.zip\"",
+          "TestScript": "if (Test-Path -LiteralPath \"C:\\setup\\jdk1.8.0_11.zip\" -PathType Leaf)\r\n{Write-Verbose \"C:\\setup\\jdk1.8.0_11.zip already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "DownloadJRE",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[File]SetupFolder"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Downloaded = Test-Path -LiteralPath \"C:\\setup\\elasticsearch-1.3.1.zip\" -PathType Leaf }",
+          "SetScript": "Invoke-WebRequest 'https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-1.3.1.zip' -OutFile \"C:\\setup\\elasticsearch-1.3.1.zip\"",
+          "TestScript": "if (Test-Path -LiteralPath \"C:\\setup\\elasticsearch-1.3.1.zip\" -PathType Leaf)\r\n{Write-Verbose \"C:\\setup\\elasticsearch-1.3.1.zip already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "DownloadElasticSearch",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[File]SetupFolder"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Downloaded = Test-Path -LiteralPath \"C:\\setup\\elasticsearch-head-master.zip\" -PathType Leaf }",
+          "SetScript": "Invoke-WebRequest 'https://github.com/mobz/elasticsearch-head/archive/master.zip' -OutFile \"C:\\setup\\elasticsearch-head-master.zip\"",
+          "TestScript": "if (Test-Path -LiteralPath \"C:\\setup\\elasticsearch-head-master.zip\" -PathType Leaf)\r\n{Write-Verbose \"C:\\setup\\elasticsearch-head-master.zip already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "DownloadPluginHead",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[File]SetupFolder"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Downloaded = Test-Path -LiteralPath \"C:\\setup\\elasticsearch-cloud-azure-2.2.0.zip\" -PathType Leaf }",
+          "SetScript": "Invoke-WebRequest 'http://download.elasticsearch.org/elasticsearch/elasticsearch-cloud-azure/elasticsearch-cloud-azure-2.2.0.zip' -OutFile \"C:\\setup\\elasticsearch-cloud-azure-2.2.0.zip\"",
+          "TestScript": "if (Test-Path -LiteralPath \"C:\\setup\\elasticsearch-cloud-azure-2.2.0.zip\" -PathType Leaf)\r\n{Write-Verbose \"C:\\setup\\elasticsearch-cloud-azure-2.2.0.zip already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "DownloadPluginAzure",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[File]SetupFolder"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Downloaded = Test-Path -LiteralPath \"C:\\setup\\azurecert.pfx\" -PathType Leaf }",
+          "SetScript": "Invoke-WebRequest '{{AzureCertificateUrl}}' -OutFile \"C:\\setup\\azurecert.pfx\"",
+          "TestScript": "if (Test-Path -LiteralPath \"C:\\setup\\azurecert.pfx\" -PathType Leaf)\r\n{Write-Verbose \"C:\\setup\\azurecert.pfx already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "DownloadCertificate",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[File]SetupFolder"
+          ],
+          "Description": null
+        },
+        {
+          "Type": "Archive",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "UnpackJRE",
+          "Args": {
+            "Path": "C:\\setup\\jdk1.8.0_11.zip",
+            "Destination": "%ProgramFiles%",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[Script]DownloadJRE"
+          ],
+          "Description": null
+        },
+        {
+          "Type": "Archive",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "UnpackElasticSearch",
+          "Args": {
+            "Path": "C:\\setup\\elasticsearch-1.3.1.zip",
+            "Destination": "%ProgramFiles%",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[Script]DownloadElasticSearch"
+          ],
+          "Description": null
+        },
+        {
+          "Type": "Environment",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "SetJavaHome",
+          "Args": {
+            "Name": "JAVA_HOME",
+            "Value": "%ProgramFiles%\\jdk1.8.0_11\\",
+            "Ensure": "Present"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[Archive]UnpackJRE"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ ServiceInstalled = Get-WmiObject -Class Win32_Service -Filter \"Name='elasticsearch-service-x64'\" }",
+          "SetScript": "$servicebat = \"$env:ProgramFiles\\elasticsearch-1.3.1\\bin\\service.bat\"\r\n$servicebatargs = @(\"install\")\r\nWrite-Verbose \"Installing Elastic Search Service ($servicebat $servicebatargs)\" -Verbose\r\nStart-Process -FilePath $servicebat -ArgumentList $servicebatargs -UseNewEnvironment -Wait -RedirectStandardOutput $env:BrewmasterDir\\Logs\\elasticsearchservice.log",
+          "TestScript": "if (Get-WmiObject -Class Win32_Service -Filter \"Name='elasticsearch-service-x64'\")\r\n{Write-Verbose \"elasticsearch-service-x64 already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallElasticSearchService",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Environment]SetJavaHome"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Enabled = (Get-NetFirewallRule | Where-Object { $_.Name -eq 'ElasticSearch9200' }) -ne $null }",
+          "SetScript": "New-NetFirewallRule -Name ElasticSearch9200 -DisplayName \"Elastic Search Port 9200\" -Direction Inbound -LocalPort 9200 -Protocol TCP -Action Allow",
+          "TestScript": "if ((Get-NetFirewallRule | Where-Object { $_.Name -eq 'ElasticSearch9200' }) -ne $null)\r\n{Write-Verbose \"Firewall Rule ElasticSearch9200 already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "EnableFirewallPort9200",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallElasticSearchService"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Enabled = (Get-NetFirewallRule | Where-Object { $_.Name -eq 'ElasticSearch9300' }) -ne $null }",
+          "SetScript": "New-NetFirewallRule -Name ElasticSearch9300 -DisplayName \"Elastic Search Port 9300\" -Direction Inbound -LocalPort 9300 -Protocol TCP -Action Allow",
+          "TestScript": "if ((Get-NetFirewallRule | Where-Object { $_.Name -eq 'ElasticSearch9300' }) -ne $null)\r\n{Write-Verbose \"Firewall Rule ElasticSearch9300 already exists.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "EnableFirewallPort9300",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallElasticSearchService"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Installed = Test-Path -LiteralPath \"$env:ProgramFiles\\elasticsearch-1.3.1\\plugins\\head\" -PathType Container }",
+          "SetScript": "$pluginbat = \"$env:ProgramFiles\\elasticsearch-1.3.1\\bin\\plugin.bat\"\r\n$pluginbatargs = @(\"-install mobz/elasticsearch-head -url file:///c:\\Setup\\elasticsearch-head-master.zip -verbose\")\r\nWrite-Verbose \"Installing Elastic Search Head Plugin ($pluginbat $pluginbatargs)\" -Verbose\r\nStart-Process -FilePath $pluginbat -ArgumentList $pluginbatargs -UseNewEnvironment -Wait -RedirectStandardOutput $env:BrewmasterDir\\Logs\\headpluginlog.log",
+          "TestScript": "if (Test-Path -LiteralPath \"$env:ProgramFiles\\elasticsearch-1.3.1\\plugins\\head\" -PathType Container)\r\n{Write-Verbose \"Elastic Search Head Plugin already installed.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallPluginHead",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallElasticSearchService"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Installed = Test-Path -LiteralPath \"$env:ProgramFiles\\elasticsearch-1.3.1\\plugins\\cloud-azure\" -PathType Container }",
+          "SetScript": "$pluginbat = \"$env:ProgramFiles\\elasticsearch-1.3.1\\bin\\plugin.bat\"\r\n$pluginbatargs = @(\"-install elasticsearch/elasticsearch-cloud-azure/2.2.0 -url file:///c:\\Setup\\elasticsearch-cloud-azure-2.2.0.zip -verbose\")\r\nWrite-Verbose \"Installing Elastic Search Azure Plugin ($pluginbat $pluginbatargs)\" -Verbose\r\nStart-Process -FilePath $pluginbat -ArgumentList $pluginbatargs -UseNewEnvironment -LoadUserProfile -Wait -RedirectStandardOutput $env:BrewmasterDir\\Logs\\azurepluginlog.log",
+          "TestScript": "if (Test-Path -LiteralPath \"$env:ProgramFiles\\elasticsearch-1.3.1\\plugins\\cloud-azure\" -PathType Container)\r\n{Write-Verbose \"Elastic Search Azure Plugin already installed.\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "InstallPluginAzure",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallElasticSearchService"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Configured = Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"cloud:\" -allmatches -simplematch -quiet }",
+          "SetScript": "Add-Content \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" \"`ncloud:`n`tazure:`n`t`tkeystore: C:/Setup/azurecert.pfx`n`t`tpassword: {{AzureCertificatePassword}}`n`t`tsubscription_id: {{AzureSubscriptionId}}`n`t`tservice_name: {{CloudService}}`n`t\"",
+          "TestScript": "if (Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"cloud:\" -allmatches -simplematch -quiet)\r\n{Write-Verbose \"Elastic Search Config already has Cloud settings\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "UpdateConfigCloud",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallPluginAzure"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Configured = Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"discovery:\" -allmatches -simplematch -quiet }",
+          "SetScript": "Add-Content \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" \"`ndiscovery:`n`t`ttype: azure\"",
+          "TestScript": "if (Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"discovery:\" -allmatches -simplematch -quiet)\r\n{Write-Verbose \"Elastic Search Config already has Discovery settings\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "UpdateConfigDiscovery",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[Script]InstallPluginAzure"
+          ],
+          "Description": null
+        },
+        {
+          "Credential": "vmadmin",
+          "GetScript": "return @{ Configured = Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"path.data: F:/\" -allmatches -simplematch -quiet }",
+          "SetScript": "Add-Content \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" \"`npath.data: F:/\"",
+          "TestScript": "if (Select-String -path \"$env:ProgramFiles\\elasticsearch-1.3.1\\config\\elasticsearch.yml\" -pattern \"path.data: F:/\" -allmatches -simplematch -quiet)\r\n{Write-Verbose \"Elastic Search Config already has Discovery settings\" -Verbose\r\nreturn $true}\r\nreturn $false",
+          "Type": "Script",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "UpdateConfigDataPath",
+          "Args": {},
+          "Nodes": [],
+          "Requires": [
+            "[xFormatDisks]FormatRawDisks"
+          ],
+          "Description": null
+        },
+        {
+          "Type": "Service",
+          "ImportModule": null,
+          "ImportTypeName": null,
+          "Name": "ConfigureElasticSearchService",
+          "Args": {
+            "Name": "elasticsearch-service-x64",
+            "StartupType": "Automatic",
+            "State": "Running"
+          },
+          "Nodes": [],
+          "Requires": [
+            "[Script]UpdateConfigDiscovery"
+          ],
+          "Description": null
+        }
+      ],
+      "Args": {}
+    }
+  ]
 }
