@@ -157,7 +157,7 @@
           }
 {% for i in (2..NumberOfElasticSearchServers) -%}
 		,{
-            "Name": "{{ServerNamePrefix}}1",
+            "Name": "{{ServerNamePrefix}}{{i}}",
             "RoleSize": "{{VmSize}}",
             "AvailabilitySet": "es-avset",
             "OsVirtualDisk": {
