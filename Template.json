@@ -1,6 +1,6 @@
 {
-  "Name": "TakeOne",
-  "Description": "Take One for Brewmaster Composite Template",
+  "Name": "TakeTwo",
+  "Description": "Composite in Composite",
   "Parameters": [
     {
       "Name": "Region",
@@ -54,19 +54,38 @@
       "Name": "ARRServerNamePrefix",
       "Type": "String",
       "Description": "Name prefix for ARR servers.",
-      "Default": "arr",
+      "Default": "cta",
       "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
       "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
     },
-    {
+	{
       "Name": "ESServerNamePrefix",
       "Type": "String",
       "Description": "Name prefix for ElasticSearch servers.",
-      "Default": "esn",
+      "Default": "ctw",
+      "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
+      "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
+    },
+	{
+      "Name": "WebServerNamePrefix",
+      "Type": "String",
+      "Description": "Name prefix for ElasticSearch servers.",
+      "Default": "ctww",
       "AllowedRegex": "^[a-zA-Z][a-zA-Z0-9-]{1,13}$",
       "AllowedDescription": "Must contain 3 to 14 letters, numbers, and hyphens. Must start with a letter."
     },
     {
+      "Name": "NumberOfWebServers",
+      "Type": "Number",
+      "TypeHint": "integer",
+      "Description": "Number of servers.",
+      "Default": "2",
+      "AllowedRegex": "^\\d+$",
+      "AllowedDescription": "Must enter a positive integer between 2 and 100.",
+      "Minimum": 2.0,
+      "Maximum": 100.0
+    },
+	{
       "Name": "AzureCertificateUrl",
       "Type": "String",
       "TypeHint": "string",
@@ -112,40 +131,24 @@
       "AllowedDescription": "Must enter a positive integer between 2 and 1024.",
       "Minimum": 2.0,
       "Maximum": 1024.0
-    },
-    {
-      "Name": "NumberOfWebServers",
-      "Type": "Number",
-      "TypeHint": "integer",
-      "Description": "Number of ARR servers.",
-      "Default": "2",
-      "AllowedRegex": "^\\d+$",
-      "AllowedDescription": "Must enter a positive integer between 2 and 100.",
-      "Minimum": 2.0,
-      "Maximum": 100.0
     }
   ],
   "ParameterMaps": [
-    {
-      "ParameterName": "ARRServerNamePrefix",
-      "TemplateName": "arr",
-      "TemplateParameterName": "ServerNamePrefix"
-    },
-    {
-      "ParameterName": "ESServerNamePrefix",
-      "TemplateName": "es",
-      "TemplateParameterName": "ServerNamePrefix"
-    }
+	{
+		"ParameterName": "WebServerNamePrefix",
+		"TemplateName": "es",
+		"TemplateParameterName": "ServerNamePrefix"
+	}
   ],
   "Templates": [
     {
       "Name": "es",
-      "TemplateId": "af817d05-6307-5095-a2f8-854482fe788e",
+      "TemplateId": "28dccf40-0134-5eb5-9749-b960fde3c4ab",
       "Commit": "master"
     },
     {
-      "Name": "es",
-      "TemplateId": "2fdab0e1-365b-5aca-831f-a950e0b1ebe2",
+      "Name": "takeone",
+      "TemplateId": "1872bedb34375643b1c38c758beb22f6",
       "Commit": "master"
     }
   ]
